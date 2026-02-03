@@ -3,3 +3,12 @@
   "version": "1.0.0",
   "description": "Simple Electron App with Button",
   "main": "app.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Student",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^40.1.0"
+  }
+} 
