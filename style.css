@@ -1,4 +1,4 @@
- {
+ * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -16,3 +16,19 @@
     font-size: 2rem;
     margin-bottom: 50px;
     text-align: center;
+}button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}button:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+}#Btn {
+    margin-top: auto;
+    margin-bottom: 20px;
+}
