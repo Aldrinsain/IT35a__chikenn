@@ -119,7 +119,7 @@ canvas{width:100% !important;height:250px !important;}
 <th>Zone</th>
 <th>Boundary</th>
 <th>Grazing Time</th>
-<th><a href="location1_log.php" style="color:white;text-decoration:none;">Location 1 Time</a></th>
+<th>Location 1 Time</th>
 <th>Location 2 Time</th>
 </tr>
 

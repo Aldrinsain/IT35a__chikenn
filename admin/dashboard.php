@@ -2,6 +2,7 @@
 session_start();
 include("../db/config.php");
 
+/* ADMIN LOGIN PROTECTION */
 if(!isset($_SESSION['username']) || $_SESSION['role'] != 'admin'){
     header("Location: ../login.php");
     exit();
@@ -10,44 +11,72 @@ if(!isset($_SESSION['username']) || $_SESSION['role'] != 'admin'){
 /* =====================
    OVERVIEW STATISTICS
 =====================*/
-$total_chickens = mysqli_fetch_assoc(mysqli_query($conn,"SELECT COUNT(*) as total FROM chickens"))['total'];
 
-$total_farmers = mysqli_fetch_assoc(mysqli_query($conn,"SELECT COUNT(*) as total FROM users WHERE role='user'"))['total'];
+$total_chickens = mysqli_fetch_assoc(mysqli_query($conn,
+"SELECT COUNT(*) as total FROM chickens"))['total'];
 
-$outside = mysqli_fetch_assoc(mysqli_query($conn,"SELECT COUNT(*) as total FROM chickens WHERE boundary_status='Outside Boundary'"))['total'];
+$total_farmers = mysqli_fetch_assoc(mysqli_query($conn,
+"SELECT COUNT(*) as total FROM users WHERE role='user'"))['total'];
+
+$outside = mysqli_fetch_assoc(mysqli_query($conn,
+"SELECT COUNT(*) as total FROM chickens WHERE boundary_status='Outside Boundary'"))['total'];
+
 
 /* =====================
-   ZONE DATA
+   ZONE DATA (FOR CHART)
 =====================*/
+
 $zone_labels = [];
 $zone_values = [];
 
-$zone = mysqli_query($conn,"SELECT current_zone, COUNT(*) as total FROM chickens GROUP BY current_zone");
+$zone = mysqli_query($conn,
+"SELECT current_zone, COUNT(*) as total FROM chickens GROUP BY current_zone");
 
 while($row = mysqli_fetch_assoc($zone)){
     $zone_labels[] = $row['current_zone'];
     $zone_values[] = $row['total'];
 }
 
+
 /* =====================
    BOUNDARY DATA
 =====================*/
+
 $boundary_labels = [];
 $boundary_values = [];
 
-$boundary = mysqli_query($conn,"SELECT boundary_status, COUNT(*) as total FROM chickens GROUP BY boundary_status");
+$boundary = mysqli_query($conn,
+"SELECT boundary_status, COUNT(*) as total FROM chickens GROUP BY boundary_status");
 
 while($row = mysqli_fetch_assoc($boundary)){
     $boundary_labels[] = $row['boundary_status'];
     $boundary_values[] = $row['total'];
 }
+
+
+/* =====================
+   FETCH CHICKEN DATA
+   (FROM FARMER SYSTEM)
+=====================*/
+
+$chickens = [];
+
+$result = mysqli_query($conn,
+"SELECT tag_number, breed, current_zone, boundary_status, grazing_time, location1_time, location2_time 
+FROM chickens");
+
+while($row = mysqli_fetch_assoc($result)){
+    $chickens[] = $row;
+}
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <title>Admin Dashboard</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -132,19 +161,26 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);
 
 </head>
 
+
 <body>
+
 
 <header>
 
 <h1>Admin Dashboard</h1>
+
 <p>Welcome <?php echo $_SESSION['username']; ?></p>
+
 <a href="../logout.php" style="color:white;">Logout</a>
 
 </header>
 
+
+
 <div class="container">
 
-<!-- OVERVIEW -->
+
+<!-- OVERVIEW CARDS -->
 
 <div class="cards">
 
@@ -165,11 +201,13 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);
 
 </div>
 
-<!-- CHICKEN MANAGEMENT -->
+
+
+<!-- CHICKEN MONITORING -->
 
 <div class="section">
 
-<h2>Chicken Management</h2>
+<h2>Farmer Chicken Monitoring</h2>
 
 <table>
 
@@ -177,21 +215,31 @@ box-shadow:0 4px 10px rgba(0,0,0,0.1);
 <th>Tag Number</th>
 <th>Breed</th>
 <th>Current Zone</th>
-<th>Boundary Status</th>
+<th>Boundary</th>
+<th><a href="time_logs.php" style="color:white;text-decoration:none;">Grazing Time</a></th>
+<th><a href="time_logs.php" style="color:white;text-decoration:none;">Location 1 Time</a></th>
+<th><a href="time_logs.php" style="color:white;text-decoration:none;">Location 2 Time</a></th>
 </tr>
 
 <?php
 
-$result = mysqli_query($conn,"SELECT * FROM chickens");
-
-while($row = mysqli_fetch_assoc($result)){
+foreach($chickens as $row){
 
 echo "<tr>
 
 <td>".$row['tag_number']."</td>
+
 <td>".$row['breed']."</td>
+
 <td>".$row['current_zone']."</td>
+
 <td>".$row['boundary_status']."</td>
+
+<td>".$row['grazing_time']."</td>
+
+<td>".$row['location1_time']."</td>
+
+<td>".$row['location2_time']."</td>
 
 </tr>";
 
@@ -204,11 +252,12 @@ echo "<tr>
 </div>
 
 
+
 <!-- FARMER MANAGEMENT -->
 
 <div class="section">
 
-<h2>Farmer Management</h2>
+<h2>Farmer Accounts</h2>
 
 <table>
 
@@ -220,14 +269,17 @@ echo "<tr>
 
 <?php
 
-$users = mysqli_query($conn,"SELECT * FROM users WHERE role='user'");
+$users = mysqli_query($conn,
+"SELECT * FROM users WHERE role='user'");
 
 while($row = mysqli_fetch_assoc($users)){
 
 echo "<tr>
 
 <td>".$row['user_id']."</td>
+
 <td>".$row['username']."</td>
+
 <td>".$row['role']."</td>
 
 </tr>";
@@ -241,13 +293,15 @@ echo "<tr>
 </div>
 
 
-<!-- CHARTS -->
+
+<!-- MONITORING CHARTS -->
 
 <div class="section">
 
 <h2>Monitoring Charts</h2>
 
 <div class="charts">
+
 
 <div class="chart-box">
 
@@ -256,6 +310,8 @@ echo "<tr>
 <canvas id="zoneChart"></canvas>
 
 </div>
+
+
 
 <div class="chart-box">
 
@@ -272,7 +328,10 @@ echo "<tr>
 </div>
 
 
+
 <script>
+
+/* ZONE CHART */
 
 new Chart(document.getElementById("zoneChart"),{
 
@@ -286,10 +345,14 @@ label:"Chickens per Zone",
 data: <?php echo json_encode($zone_values); ?>,
 backgroundColor:"#007bff"
 }]
+
 }
 
 });
 
+
+
+/* BOUNDARY CHART */
 
 new Chart(document.getElementById("boundaryChart"),{
 
@@ -302,11 +365,13 @@ datasets:[{
 data: <?php echo json_encode($boundary_values); ?>,
 backgroundColor:["green","red"]
 }]
+
 }
 
 });
 
 </script>
+
 
 </body>
 </html>
